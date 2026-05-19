@@ -14,6 +14,17 @@ folder:
 
 or select specific `.jsonl` files with `Open files`.
 
+## Local Web Server
+
+For macOS users, the quickest no-clone local server is:
+
+```sh
+curl -fsSL https://raw.githubusercontent.com/tuannvm/clashboard/main/serve.py | python3
+```
+
+Stop the server with `Control C` in the terminal. If port `8767` is already
+busy, stop the process using that port and run the command again.
+
 On macOS, the `.codex` and `.claude` folders are hidden in Finder. Press
 `Command Shift .` to toggle hidden files and folders, or press `Command Shift G`
 and enter `~/.codex` or `~/.claude` to jump there directly.
