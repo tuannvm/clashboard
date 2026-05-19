@@ -560,7 +560,9 @@
           </div>
           <div class="picker-help">
             Use <strong>Open folder</strong> for a whole history folder, or
-            <strong>Open files</strong> for selected JSONL files.
+            <strong>Open files</strong> for selected JSONL files. Latest
+            sessions and messages appear first. Static hosting cannot watch
+            local logs in realtime; reselect the files or folder to refresh.
           </div>
         </div>
         <div id="sessions" class="sessions"></div>
@@ -1041,6 +1043,7 @@
           data.meta.cwd,
           fmtDateTime(data.meta.updatedAt),
           data.meta.shownEventCount + " shown",
+          "newest first",
         ]
           .filter(Boolean)
           .join(" · ");
@@ -1051,8 +1054,9 @@
           return;
         }
 
+        const visibleEvents = data.events.slice().reverse();
         els.timeline.replaceChildren(
-          ...data.events.map((event) => {
+          ...visibleEvents.map((event) => {
             const row = document.createElement("article");
             row.className = "event " + event.kind + " " + (event.role || "");
 
@@ -1097,8 +1101,7 @@
         );
 
         requestAnimationFrame(() => {
-          if (els.follow.checked)
-            els.timeline.scrollTop = els.timeline.scrollHeight;
+          if (els.follow.checked) els.timeline.scrollTop = 0;
         });
       }
 

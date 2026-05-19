@@ -22,6 +22,11 @@ The app parses and filters logs entirely in the browser. Browsers do not allow a
 hosted static site to silently read local files, so the folder or files must be
 selected by the user.
 
+Sessions are sorted newest-first, and each session also shows the newest visible
+message at the top. Static hosting does not provide realtime disk updates from
+`~/.codex` or `~/.claude`; reselect the folder or files when you want to
+refresh from updated logs.
+
 ## Browser Notes
 
 - `Open files` works with standard file selection.
