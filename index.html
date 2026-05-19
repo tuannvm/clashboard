@@ -1,0 +1,1248 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'none'; img-src 'self' data:; style-src 'unsafe-inline'; script-src 'unsafe-inline';"
+    />
+    <meta name="referrer" content="no-referrer" />
+    <title>Codex Observer</title>
+    <style>
+      :root {
+        color-scheme: light;
+        --bg: #f6f7f9;
+        --panel: #ffffff;
+        --panel-2: #eef2f6;
+        --line: #d8dee7;
+        --text: #17202a;
+        --muted: #617080;
+        --accent: #0f766e;
+        --accent-2: #375a7f;
+        --danger: #a33a3a;
+        --tool: #7c5a18;
+        --radius: 8px;
+        font-family:
+          Inter,
+          ui-sans-serif,
+          system-ui,
+          -apple-system,
+          BlinkMacSystemFont,
+          "Segoe UI",
+          sans-serif;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        min-height: 100vh;
+        overflow: hidden;
+        background: var(--bg);
+        color: var(--text);
+      }
+
+      button,
+      select,
+      input {
+        font: inherit;
+      }
+
+      .app {
+        display: grid;
+        grid-template-columns: 340px minmax(0, 1fr);
+        height: 100vh;
+        min-height: 0;
+      }
+
+      .sidebar {
+        border-right: 1px solid var(--line);
+        background: var(--panel);
+        height: 100vh;
+        min-height: 0;
+        display: flex;
+        flex-direction: column;
+      }
+
+      .brand {
+        padding: 18px 18px 14px;
+        border-bottom: 1px solid var(--line);
+      }
+
+      .brand h1 {
+        margin: 0;
+        font-size: 18px;
+        line-height: 1.2;
+        font-weight: 700;
+      }
+
+      .brand p {
+        margin: 6px 0 0;
+        color: var(--muted);
+        font-size: 13px;
+        line-height: 1.35;
+      }
+
+      .controls {
+        display: grid;
+        gap: 10px;
+        padding: 12px 14px;
+        border-bottom: 1px solid var(--line);
+      }
+
+      .control-row {
+        display: flex;
+        gap: 8px;
+        align-items: center;
+      }
+
+      .search {
+        width: 100%;
+        height: 34px;
+        border: 1px solid var(--line);
+        border-radius: 6px;
+        padding: 0 10px;
+        background: #fff;
+        color: var(--text);
+      }
+
+      .icon-button {
+        width: 34px;
+        height: 34px;
+        border: 1px solid var(--line);
+        border-radius: 6px;
+        background: #fff;
+        color: var(--text);
+        display: grid;
+        place-items: center;
+        cursor: pointer;
+      }
+
+      .icon-button:hover {
+        border-color: #aeb8c5;
+        background: #f8fafc;
+      }
+
+      .icon-button:focus-visible,
+      .file-button:focus-visible,
+      .search:focus-visible,
+      .session:focus-visible,
+      .toggle input:focus-visible,
+      .tool-details summary:focus-visible {
+        outline: 2px solid var(--accent);
+        outline-offset: 2px;
+      }
+
+      .toggle {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        color: var(--muted);
+        font-size: 13px;
+      }
+
+      .toggle input {
+        width: 16px;
+        height: 16px;
+      }
+
+      .file-button {
+        min-height: 34px;
+        border: 1px solid var(--line);
+        border-radius: 6px;
+        background: #fff;
+        color: var(--text);
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        padding: 0 10px;
+        cursor: pointer;
+        font-size: 13px;
+        font-weight: 650;
+      }
+
+      .file-button:hover {
+        border-color: #aeb8c5;
+        background: #f8fafc;
+      }
+
+      .file-input {
+        position: absolute;
+        opacity: 0;
+        pointer-events: none;
+        width: 1px;
+        height: 1px;
+      }
+
+      .sessions {
+        min-height: 0;
+        flex: 1 1 auto;
+        overflow: auto;
+        padding: 8px;
+      }
+
+      .disclaimer {
+        border-top: 1px solid var(--line);
+        padding: 10px 14px;
+        color: var(--muted);
+        font-size: 11px;
+        line-height: 1.35;
+        background: #fafbfc;
+      }
+
+      .session {
+        width: 100%;
+        text-align: left;
+        border: 1px solid transparent;
+        border-radius: var(--radius);
+        background: transparent;
+        padding: 10px;
+        cursor: pointer;
+        display: grid;
+        gap: 5px;
+      }
+
+      .session:hover {
+        background: #f4f7fb;
+      }
+
+      .session.active {
+        background: #e8f4f2;
+        border-color: #b6d8d3;
+      }
+
+      .session-title {
+        font-size: 13px;
+        line-height: 1.25;
+        font-weight: 650;
+        color: var(--text);
+        overflow-wrap: anywhere;
+      }
+
+      .session-meta {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+        color: var(--muted);
+        font-size: 11px;
+      }
+
+      .main {
+        min-width: 0;
+        min-height: 0;
+        height: 100vh;
+        display: flex;
+        flex-direction: column;
+      }
+
+      .topbar {
+        height: 66px;
+        border-bottom: 1px solid var(--line);
+        background: rgba(255, 255, 255, 0.92);
+        backdrop-filter: blur(8px);
+        position: sticky;
+        top: 0;
+        z-index: 2;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 16px;
+        padding: 0 18px;
+      }
+
+      .current {
+        min-width: 0;
+      }
+
+      .current-title {
+        margin: 0;
+        font-size: 16px;
+        font-weight: 700;
+        line-height: 1.25;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+
+      .current-meta {
+        margin-top: 4px;
+        color: var(--muted);
+        font-size: 12px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+
+      .status {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        color: var(--muted);
+        font-size: 12px;
+        flex: 0 0 auto;
+      }
+
+      .dot {
+        width: 8px;
+        height: 8px;
+        border-radius: 999px;
+        background: var(--accent);
+      }
+
+      .timeline {
+        width: min(1060px, 100%);
+        margin: 0 auto;
+        padding: 18px;
+        display: grid;
+        gap: 12px;
+        flex: 1 1 auto;
+        min-height: 0;
+        overflow: auto;
+        align-content: start;
+      }
+
+      .event {
+        display: grid;
+        grid-template-columns: 106px minmax(0, 1fr);
+        gap: 12px;
+        align-items: start;
+      }
+
+      .time {
+        color: var(--muted);
+        font-size: 11px;
+        padding-top: 11px;
+        text-align: right;
+        font-variant-numeric: tabular-nums;
+      }
+
+      .bubble {
+        border: 1px solid var(--line);
+        border-radius: var(--radius);
+        background: var(--panel);
+        padding: 10px 12px;
+        min-width: 0;
+      }
+
+      .role {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+        margin-bottom: 7px;
+        color: var(--muted);
+        font-size: 11px;
+        text-transform: uppercase;
+        font-weight: 750;
+        letter-spacing: 0;
+      }
+
+      .message.user .bubble {
+        border-left: 3px solid var(--accent-2);
+      }
+
+      .message.assistant .bubble {
+        border-left: 3px solid var(--accent);
+      }
+
+      .tool_call .bubble,
+      .tool_output .bubble {
+        background: #fffaf0;
+        border-left: 3px solid var(--tool);
+      }
+
+      .task_started .bubble,
+      .task_complete .bubble,
+      .turn .bubble {
+        background: var(--panel-2);
+        color: var(--muted);
+      }
+
+      .body {
+        white-space: pre-wrap;
+        overflow-wrap: anywhere;
+        font-size: 13px;
+        line-height: 1.48;
+      }
+
+      .tool_call .body,
+      .tool_output .body {
+        font-family:
+          ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
+          "Liberation Mono", monospace;
+        font-size: 12px;
+        line-height: 1.45;
+      }
+
+      .tool-details {
+        display: grid;
+        gap: 8px;
+      }
+
+      .tool-details summary {
+        cursor: pointer;
+        color: var(--tool);
+        font-size: 12px;
+        font-weight: 700;
+        list-style-position: inside;
+      }
+
+      .tool-details summary:hover {
+        color: #5f4410;
+      }
+
+      .empty,
+      .error {
+        margin: 32px auto;
+        width: min(680px, calc(100% - 36px));
+        border: 1px solid var(--line);
+        background: var(--panel);
+        border-radius: var(--radius);
+        padding: 18px;
+        color: var(--muted);
+      }
+
+      .error {
+        border-color: #e5b5b5;
+        color: var(--danger);
+      }
+
+      @media (max-width: 860px) {
+        .app {
+          grid-template-columns: 1fr;
+          height: 100vh;
+        }
+
+        .sidebar {
+          height: 42vh;
+          min-height: 260px;
+          max-height: 42vh;
+          border-right: 0;
+          border-bottom: 1px solid var(--line);
+        }
+
+        .topbar {
+          height: auto;
+          min-height: 62px;
+          align-items: flex-start;
+          flex-direction: column;
+          padding: 12px 14px;
+          gap: 8px;
+        }
+
+        .status {
+          width: 100%;
+          justify-content: space-between;
+        }
+
+        .event {
+          grid-template-columns: 1fr;
+          gap: 4px;
+        }
+
+        .time {
+          text-align: left;
+          padding: 0 2px;
+        }
+
+        .timeline {
+          padding: 14px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <noscript>
+      <div class="empty">
+        Enable JavaScript to parse local Codex JSONL session logs.
+      </div>
+    </noscript>
+    <div class="app">
+      <aside class="sidebar">
+        <div class="brand">
+          <h1>Codex Observer</h1>
+          <p id="sourceHint">
+            Default JSONL folders: ~/.codex/sessions, ~/.claude/projects
+          </p>
+        </div>
+        <div class="controls">
+          <div class="control-row">
+            <input
+              id="search"
+              class="search"
+              type="search"
+              placeholder="Filter sessions"
+            />
+            <button
+              id="refresh"
+              class="icon-button"
+              type="button"
+              title="Refresh sessions"
+              aria-label="Refresh sessions"
+            >
+              <svg
+                width="17"
+                height="17"
+                viewBox="0 0 24 24"
+                aria-hidden="true"
+              >
+                <path
+                  d="M20 12a8 8 0 1 1-2.34-5.66M20 4v6h-6"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                />
+              </svg>
+            </button>
+          </div>
+          <label class="toggle">
+            <input id="follow" type="checkbox" checked />
+            Follow latest session
+          </label>
+          <div class="control-row">
+            <button id="openFolder" class="file-button" type="button">
+              Open folder
+            </button>
+            <label class="file-button" for="openFiles">Open files</label>
+            <input
+              id="openFolderInput"
+              class="file-input"
+              type="file"
+              accept=".jsonl"
+              multiple
+              webkitdirectory
+            />
+            <input
+              id="openFiles"
+              class="file-input"
+              type="file"
+              accept=".jsonl"
+              multiple
+            />
+          </div>
+        </div>
+        <div id="sessions" class="sessions"></div>
+        <footer class="disclaimer">
+          AI-generated content: this page was created with AI assistance and may
+          contain inaccuracies.
+        </footer>
+      </aside>
+
+      <main class="main">
+        <header class="topbar">
+          <div class="current">
+            <h2 id="currentTitle" class="current-title">Loading sessions</h2>
+            <div id="currentMeta" class="current-meta"></div>
+          </div>
+          <div class="status">
+            <span><span class="dot"></span></span>
+            <span id="statusText">Starting</span>
+          </div>
+        </header>
+        <section id="timeline" class="timeline"></section>
+      </main>
+    </div>
+
+    <script>
+      const state = {
+        sessions: [],
+        selectedFile: null,
+        search: "",
+        autoTimer: null,
+        source: "local",
+        localFiles: new Map(),
+      };
+
+      const els = {
+        sessions: document.querySelector("#sessions"),
+        timeline: document.querySelector("#timeline"),
+        search: document.querySelector("#search"),
+        refresh: document.querySelector("#refresh"),
+        follow: document.querySelector("#follow"),
+        openFolder: document.querySelector("#openFolder"),
+        openFolderInput: document.querySelector("#openFolderInput"),
+        openFiles: document.querySelector("#openFiles"),
+        title: document.querySelector("#currentTitle"),
+        meta: document.querySelector("#currentMeta"),
+        status: document.querySelector("#statusText"),
+        sourceHint: document.querySelector("#sourceHint"),
+      };
+
+      const maxSessions = 200;
+      const maxEvents = 600;
+      const defaultSessionsPath = "~/.codex/sessions or ~/.claude/projects";
+
+      function fmtTime(value) {
+        if (!value) return "";
+        const date = new Date(value);
+        if (Number.isNaN(date.getTime())) return "";
+        return date.toLocaleTimeString([], {
+          hour: "2-digit",
+          minute: "2-digit",
+          second: "2-digit",
+        });
+      }
+
+      function fmtDateTime(value) {
+        if (!value) return "";
+        const date = new Date(value);
+        if (Number.isNaN(date.getTime())) return "";
+        return date.toLocaleString([], {
+          month: "short",
+          day: "numeric",
+          hour: "2-digit",
+          minute: "2-digit",
+        });
+      }
+
+      function labelFor(event) {
+        if (event.kind === "tool_call") return "Tool Call";
+        if (event.kind === "tool_output") return "Tool Output";
+        if (event.kind === "task_started") return "Started";
+        if (event.kind === "task_complete") return "Complete";
+        if (event.kind === "turn") return "Turn";
+        return event.role || event.kind;
+      }
+
+      function textFromContent(content) {
+        if (typeof content === "string") return content;
+        if (!Array.isArray(content)) return "";
+        return content
+          .map((item) => {
+            if (!item) return "";
+            if (typeof item === "string") return item;
+            if (typeof item.text === "string") return item.text;
+            if (typeof item.output === "string") return item.output;
+            if (typeof item.input === "string") return item.input;
+            return "";
+          })
+          .filter(Boolean)
+          .join("\n");
+      }
+
+      function truncate(value, max = 12000) {
+        if (!value) return "";
+        return value.length <= max
+          ? value
+          : value.slice(0, max) + "\n... truncated ...";
+      }
+
+      function isFilteredText(value) {
+        return /<permissions instructions>|base_instructions|encrypted_content|# AGENTS\.md instructions for /.test(
+          value || "",
+        );
+      }
+
+      function summarizeToolInput(input) {
+        if (!input) return "";
+        if (typeof input === "string") return truncate(input, 4000);
+        try {
+          return truncate(JSON.stringify(input, null, 2), 4000);
+        } catch {
+          return "";
+        }
+      }
+
+      function claudeTextContent(content) {
+        if (typeof content === "string") return content;
+        if (!Array.isArray(content)) return "";
+        return content
+          .filter(
+            (item) =>
+              item && item.type === "text" && typeof item.text === "string",
+          )
+          .map((item) => item.text)
+          .join("\n");
+      }
+
+      function claudeToolResultText(content) {
+        if (!Array.isArray(content)) return "";
+        return content
+          .filter((item) => item && item.type === "tool_result")
+          .map((item) => {
+            const prefix = item.tool_use_id
+              ? "tool_result " + item.tool_use_id + "\n"
+              : "tool_result\n";
+            if (typeof item.content === "string") return prefix + item.content;
+            return prefix + summarizeToolInput(item.content);
+          })
+          .join("\n\n");
+      }
+
+      function claudeToolUseEvents(row, content) {
+        if (!Array.isArray(content)) return [];
+        return content
+          .filter((item) => item && item.type === "tool_use")
+          .map((item) => ({
+            id:
+              (row.timestamp || "") +
+              ":claude-tool-call:" +
+              (item.id || item.name || "tool"),
+            ts: row.timestamp || "",
+            kind: "tool_call",
+            role: "tool",
+            toolName: item.name || "tool",
+            status: "",
+            text:
+              (item.name || "tool") +
+              (item.input ? "\n" + summarizeToolInput(item.input) : ""),
+          }));
+      }
+
+      function claudeEventFromRow(row) {
+        if (!row || !row.sessionId) return {};
+        const meta = {
+          id: row.sessionId || "",
+          startedAt: row.timestamp || "",
+          cwd: row.cwd || "",
+          cliVersion: row.version || "",
+          originator: "claude-code",
+        };
+
+        if (row.type === "user" && row.message?.role === "user") {
+          const resultText = truncate(
+            claudeToolResultText(row.message.content),
+            8000,
+          );
+          if (resultText) {
+            return {
+              meta,
+              event: {
+                id:
+                  (row.timestamp || "") +
+                  ":claude-tool-output:" +
+                  (row.uuid || ""),
+                ts: row.timestamp || "",
+                kind: "tool_output",
+                role: "tool",
+                text: resultText,
+              },
+            };
+          }
+          const text = truncate(
+            claudeTextContent(row.message.content) || row.message.content || "",
+          );
+          return {
+            meta,
+            event: {
+              id: (row.timestamp || "") + ":claude-user:" + (row.uuid || ""),
+              ts: row.timestamp || "",
+              kind: "message",
+              role: "user",
+              text,
+            },
+          };
+        }
+
+        if (row.type === "assistant" && row.message?.role === "assistant") {
+          const events = [];
+          const text = truncate(claudeTextContent(row.message.content));
+          if (text) {
+            events.push({
+              id:
+                (row.timestamp || "") + ":claude-assistant:" + (row.uuid || ""),
+              ts: row.timestamp || "",
+              kind: "message",
+              role: "assistant",
+              text,
+            });
+          }
+          events.push(...claudeToolUseEvents(row, row.message.content));
+          return { meta, events };
+        }
+
+        return { meta };
+      }
+
+      function addEvent(events, event) {
+        if (isFilteredText(event.text)) return;
+        if (
+          !event.text &&
+          !["task_started", "task_complete", "tool_call"].includes(event.kind)
+        )
+          return;
+        const previous = events[events.length - 1];
+        if (
+          previous &&
+          previous.kind === event.kind &&
+          previous.role === event.role &&
+          previous.text === event.text
+        ) {
+          return;
+        }
+        events.push(event);
+      }
+
+      function eventFromLine(line) {
+        const row = JSON.parse(line);
+        const claudeParsed = claudeEventFromRow(row);
+        if (claudeParsed.meta || claudeParsed.event || claudeParsed.events)
+          return claudeParsed;
+        const payload = row.payload || {};
+
+        if (row.type === "session_meta") {
+          return {
+            meta: {
+              id: payload.id || "",
+              startedAt: payload.timestamp || row.timestamp || "",
+              cwd: payload.cwd || "",
+              cliVersion: payload.cli_version || "",
+              originator: payload.originator || "",
+            },
+          };
+        }
+
+        if (row.type === "turn_context") {
+          return {
+            event: {
+              id: row.timestamp + ":turn",
+              ts: row.timestamp,
+              kind: "turn",
+              role: "meta",
+              text: "New turn",
+            },
+          };
+        }
+
+        if (row.type === "event_msg") {
+          const type = payload.type || "event";
+          if (type === "token_count") return {};
+          const text = payload.message || payload.msg || payload.text || "";
+          if (type === "user_message") {
+            return {
+              event: {
+                id: row.timestamp + ":user-event",
+                ts: row.timestamp,
+                kind: "message",
+                role: "user",
+                text,
+              },
+            };
+          }
+          if (type === "agent_message") {
+            return {
+              event: {
+                id: row.timestamp + ":assistant-event",
+                ts: row.timestamp,
+                kind: "message",
+                role: "assistant",
+                text,
+              },
+            };
+          }
+          if (type === "task_started" || type === "task_complete") {
+            return {
+              event: {
+                id: row.timestamp + ":" + type,
+                ts: row.timestamp,
+                kind: type,
+                role: "meta",
+                text: type,
+              },
+            };
+          }
+          return {};
+        }
+
+        if (row.type !== "response_item") return {};
+
+        if (payload.type === "message") {
+          if (!["user", "assistant"].includes(payload.role)) return {};
+          const text = truncate(textFromContent(payload.content));
+          if (!text || isFilteredText(text)) return {};
+          return {
+            event: {
+              id: row.timestamp + ":" + payload.role,
+              ts: row.timestamp,
+              kind: "message",
+              role: payload.role,
+              text,
+            },
+          };
+        }
+
+        if (payload.type === "custom_tool_call") {
+          const name = payload.name || "tool";
+          const input = summarizeToolInput(payload.input);
+          return {
+            event: {
+              id: row.timestamp + ":tool-call:" + name,
+              ts: row.timestamp,
+              kind: "tool_call",
+              role: "tool",
+              toolName: name,
+              status: payload.status || "",
+              text: input ? name + "\n" + input : name,
+            },
+          };
+        }
+
+        if (payload.type === "custom_tool_call_output") {
+          const text = truncate(
+            textFromContent(payload.output) ||
+              textFromContent(payload.result) ||
+              textFromContent(payload.content),
+            8000,
+          );
+          return {
+            event: {
+              id: row.timestamp + ":tool-output",
+              ts: row.timestamp,
+              kind: "tool_output",
+              role: "tool",
+              text,
+            },
+          };
+        }
+
+        return {};
+      }
+
+      function parseSessionText(text, file) {
+        const lines = text.split(/\r?\n/).filter(Boolean);
+        const events = [];
+        let meta = {};
+
+        for (const line of lines) {
+          try {
+            const parsed = eventFromLine(line);
+            if (parsed.meta) meta = { ...meta, ...parsed.meta };
+            if (parsed.event) addEvent(events, parsed.event);
+            if (parsed.events)
+              parsed.events.forEach((event) => addEvent(events, event));
+          } catch {
+            addEvent(events, {
+              id: "parse-error:" + events.length,
+              ts: "",
+              kind: "parse_error",
+              role: "meta",
+              text: "Skipped one malformed JSONL row",
+            });
+          }
+        }
+
+        const visible = events.slice(-maxEvents);
+        const firstUser = visible.find(
+          (event) => event.role === "user" && event.text,
+        );
+        const path = file.relativePath || file.webkitRelativePath || file.name;
+        const title = firstUser
+          ? firstUser.text.split("\n")[0].slice(0, 120)
+          : file.name;
+        return {
+          meta: {
+            ...meta,
+            title,
+            path,
+            updatedAt: new Date(file.lastModified || Date.now()).toISOString(),
+            eventCount: events.length,
+            shownEventCount: visible.length,
+          },
+          events: visible,
+        };
+      }
+
+      function renderSessions() {
+        const query = state.search.trim().toLowerCase();
+        const sessions = state.sessions.filter((session) => {
+          if (!query) return true;
+          return [session.title, session.cwd, session.path].some((value) =>
+            String(value || "")
+              .toLowerCase()
+              .includes(query),
+          );
+        });
+
+        if (!sessions.length) {
+          els.sessions.innerHTML =
+            '<div class="empty">No matching sessions.</div>';
+          return;
+        }
+
+        els.sessions.replaceChildren(
+          ...sessions.map((session) => {
+            const button = document.createElement("button");
+            button.type = "button";
+            button.className =
+              "session" +
+              (session.path === state.selectedFile ? " active" : "");
+            button.addEventListener("click", () => {
+              state.selectedFile = session.path;
+              els.follow.checked = false;
+              loadSession(session.path);
+              renderSessions();
+            });
+
+            const title = document.createElement("div");
+            title.className = "session-title";
+            title.textContent = session.title || session.id;
+
+            const meta = document.createElement("div");
+            meta.className = "session-meta";
+            meta.textContent = [
+              fmtDateTime(session.updatedAt),
+              session.eventCount + " events",
+            ]
+              .filter(Boolean)
+              .join(" · ");
+
+            button.append(title, meta);
+            return button;
+          }),
+        );
+      }
+
+      function renderSession(data) {
+        state.selectedFile = data.meta.path;
+        els.title.textContent = data.meta.title || "Codex session";
+        els.meta.textContent = [
+          data.meta.cwd,
+          fmtDateTime(data.meta.updatedAt),
+          data.meta.shownEventCount + " shown",
+        ]
+          .filter(Boolean)
+          .join(" · ");
+
+        if (!data.events.length) {
+          els.timeline.innerHTML =
+            '<div class="empty">No visible events in this session.</div>';
+          return;
+        }
+
+        els.timeline.replaceChildren(
+          ...data.events.map((event) => {
+            const row = document.createElement("article");
+            row.className = "event " + event.kind + " " + (event.role || "");
+
+            const time = document.createElement("div");
+            time.className = "time";
+            time.textContent = fmtTime(event.ts);
+
+            const bubble = document.createElement("div");
+            bubble.className = "bubble";
+
+            const role = document.createElement("div");
+            role.className = "role";
+            role.textContent = labelFor(event);
+
+            if (event.kind === "tool_call" || event.kind === "tool_output") {
+              const details = document.createElement("details");
+              details.className = "tool-details";
+
+              const summary = document.createElement("summary");
+              const firstLine =
+                (event.text || "").split("\n")[0] || labelFor(event);
+              summary.textContent =
+                event.kind === "tool_call"
+                  ? "Show tool call: " + firstLine
+                  : "Show tool output";
+
+              const body = document.createElement("div");
+              body.className = "body";
+              body.textContent = event.text || "";
+
+              details.append(summary, body);
+              bubble.append(role, details);
+            } else {
+              const body = document.createElement("div");
+              body.className = "body";
+              body.textContent = event.text || "";
+              bubble.append(role, body);
+            }
+            row.append(time, bubble);
+            return row;
+          }),
+        );
+
+        requestAnimationFrame(() => {
+          if (els.follow.checked)
+            els.timeline.scrollTop = els.timeline.scrollHeight;
+        });
+      }
+
+      async function fetchJson(url) {
+        const response = await fetch(url, { cache: "no-store" });
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.error || response.statusText);
+        return data;
+      }
+
+      async function loadLocalFile(file) {
+        return parseSessionText(await file.text(), file);
+      }
+
+      async function loadLocalSessions(files) {
+        const jsonlFiles = Array.from(files).filter((file) =>
+          file.name.endsWith(".jsonl"),
+        );
+        state.source = "local";
+        els.sourceHint.textContent = "Local JSONL source";
+        state.localFiles = new Map(
+          jsonlFiles.map((file) => [
+            file.relativePath || file.webkitRelativePath || file.name,
+            file,
+          ]),
+        );
+        const parsed = await Promise.all(jsonlFiles.map(loadLocalFile));
+        state.sessions = parsed
+          .map((session) => ({
+            id: session.meta.id || session.meta.path,
+            title: session.meta.title,
+            cwd: session.meta.cwd,
+            path: session.meta.path,
+            startedAt: session.meta.startedAt,
+            updatedAt: session.meta.updatedAt,
+            size: state.localFiles.get(session.meta.path)?.size || 0,
+            eventCount: session.meta.eventCount,
+          }))
+          .sort(
+            (a, b) =>
+              new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime(),
+          )
+          .slice(0, maxSessions);
+
+        state.selectedFile = state.sessions[0]?.path || null;
+        els.follow.checked = false;
+        renderSessions();
+        if (state.selectedFile) await loadSession(state.selectedFile);
+        els.status.textContent = state.sessions.length
+          ? "Loaded " + state.sessions.length + " local sessions"
+          : "No rollout JSONL files selected";
+      }
+
+      async function filesFromDirectoryHandle(directoryHandle) {
+        const files = [];
+        async function visit(handle, prefix = "") {
+          for await (const entry of handle.values()) {
+            if (entry.kind === "directory") {
+              await visit(entry, prefix + entry.name + "/");
+              continue;
+            }
+            if (entry.kind === "file" && entry.name.endsWith(".jsonl")) {
+              const file = await entry.getFile();
+              file.relativePath = prefix + file.name;
+              files.push(file);
+            }
+          }
+        }
+        await visit(directoryHandle);
+        return files;
+      }
+
+      async function loadSessions() {
+        if (state.source === "local") {
+          if (state.localFiles.size) {
+            await loadLocalSessions(Array.from(state.localFiles.values()));
+          } else {
+            els.status.textContent = "Static mode";
+            els.title.textContent = "Open Codex session logs";
+            els.meta.textContent =
+              "Default JSONL folder: " + defaultSessionsPath;
+            els.timeline.innerHTML =
+              '<div class="empty">Choose the default Codex sessions folder or selected rollout JSONL files.</div>';
+          }
+          return;
+        }
+        const data = await fetchJson("/api/sessions");
+        els.sourceHint.textContent =
+          data.sessionsRoot || "API-backed session logs";
+        state.sessions = data.sessions;
+        if (!state.selectedFile && state.sessions[0])
+          state.selectedFile = state.sessions[0].path;
+        renderSessions();
+        if (state.selectedFile) await loadSession(state.selectedFile);
+      }
+
+      async function loadSession(file) {
+        try {
+          els.status.textContent = "Refreshing";
+          if (state.source === "local") {
+            const localFile = state.localFiles.get(file);
+            if (!localFile)
+              throw new Error("Selected local file is no longer available");
+            const data = await loadLocalFile(localFile);
+            renderSession(data);
+            els.status.textContent =
+              "Updated " + fmtTime(new Date().toISOString());
+            return;
+          }
+          const data = await fetchJson(
+            "/api/session?file=" + encodeURIComponent(file),
+          );
+          renderSession(data);
+          els.status.textContent =
+            "Updated " + fmtTime(new Date().toISOString());
+        } catch (error) {
+          els.timeline.innerHTML = '<div class="error"></div>';
+          els.timeline.querySelector(".error").textContent = error.message;
+          els.status.textContent = "Error";
+        }
+      }
+
+      async function tick() {
+        try {
+          if (state.source === "local") return;
+          if (els.follow.checked) {
+            const data = await fetchJson("/api/latest");
+            renderSession(data);
+            renderSessions();
+            els.status.textContent =
+              "Updated " + fmtTime(new Date().toISOString());
+            return;
+          }
+          if (state.selectedFile) await loadSession(state.selectedFile);
+        } catch (error) {
+          els.status.textContent = error.message;
+        }
+      }
+
+      els.search.addEventListener("input", (event) => {
+        state.search = event.target.value;
+        renderSessions();
+      });
+
+      els.refresh.addEventListener("click", () => loadSessions());
+      els.follow.addEventListener("change", () => {
+        if (els.follow.checked) tick();
+      });
+
+      els.openFolder.addEventListener("click", async () => {
+        if ("showDirectoryPicker" in window) {
+          try {
+            const handle = await window.showDirectoryPicker({ mode: "read" });
+            await loadLocalSessions(await filesFromDirectoryHandle(handle));
+            return;
+          } catch (error) {
+            if (error.name === "AbortError") return;
+            els.status.textContent = error.message;
+          }
+        }
+        els.openFolderInput.click();
+      });
+
+      els.openFolderInput.addEventListener("change", async (event) => {
+        await loadLocalSessions(event.target.files || []);
+      });
+
+      els.openFiles.addEventListener("change", async (event) => {
+        await loadLocalSessions(event.target.files || []);
+      });
+
+      loadSessions().catch((error) => {
+        state.source = "local";
+        els.follow.checked = false;
+        els.status.textContent = "Static mode";
+        els.title.textContent = "Open Codex session logs";
+        els.meta.textContent = "";
+        els.timeline.innerHTML =
+          '<div class="empty">Choose a Codex sessions folder or rollout JSONL files.</div>';
+      });
+      state.autoTimer = setInterval(tick, 2000);
+    </script>
+  </body>
+</html>
