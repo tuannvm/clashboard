@@ -128,9 +128,6 @@
 
       .icon-button:focus-visible,
       .file-button:focus-visible,
-      .path-button:focus-visible,
-      .location-select:focus-visible,
-      .location-path:focus-visible,
       .search:focus-visible,
       .session:focus-visible,
       .toggle input:focus-visible,
@@ -204,51 +201,6 @@
           Consolas,
           monospace;
         padding: 1px 4px;
-      }
-
-      .location-panel {
-        display: grid;
-        gap: 8px;
-        border: 1px solid var(--line);
-        border-radius: var(--radius);
-        background: #fff;
-        padding: 10px;
-      }
-
-      .location-label {
-        color: var(--muted);
-        font-size: 11px;
-        font-weight: 750;
-        text-transform: uppercase;
-      }
-
-      .location-select,
-      .location-path {
-        width: 100%;
-        min-height: 32px;
-        border: 1px solid var(--line);
-        border-radius: 6px;
-        background: #fff;
-        color: var(--text);
-        padding: 0 9px;
-        font-size: 12px;
-      }
-
-      .location-path {
-        font-family:
-          ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-      }
-
-      .path-button {
-        min-height: 32px;
-        border: 1px solid var(--line);
-        border-radius: 6px;
-        background: #f8fafc;
-        color: var(--text);
-        cursor: pointer;
-        padding: 0 9px;
-        font-size: 12px;
-        font-weight: 650;
       }
 
       .sessions {
@@ -578,28 +530,6 @@
             <input id="follow" type="checkbox" checked />
             Follow latest session
           </label>
-          <div class="location-panel">
-            <div class="location-label">Default local history</div>
-            <select id="locationPreset" class="location-select">
-              <option value="codex">Codex - ~/.codex/sessions</option>
-              <option value="claude">Claude Code - ~/.claude/projects</option>
-            </select>
-            <input
-              id="locationPath"
-              class="location-path"
-              type="text"
-              value="~/.codex/sessions"
-              readonly
-            />
-            <div class="control-row">
-              <button id="copyLocation" class="path-button" type="button">
-                Copy path
-              </button>
-              <button id="openSelectedFolder" class="path-button" type="button">
-                Open selected folder
-              </button>
-            </div>
-          </div>
           <div class="control-row">
             <button id="openFolder" class="file-button" type="button">
               Open folder
@@ -622,10 +552,15 @@
             />
           </div>
           <div class="picker-help">
-            In Finder, press <kbd>Command</kbd> <kbd>Shift</kbd> <kbd>.</kbd> to
-            show hidden folders, or press <kbd>Command</kbd> <kbd>Shift</kbd>
-            <kbd>G</kbd> and enter <code>~/.codex</code> or
-            <code>~/.claude</code>.
+            Choose <code>~/.codex/sessions</code> for Codex or
+            <code>~/.claude/projects</code> for Claude Code. On macOS Finder,
+            press <kbd>Command</kbd> <kbd>Shift</kbd> <kbd>.</kbd> to show
+            hidden folders, or press <kbd>Command</kbd> <kbd>Shift</kbd>
+            <kbd>G</kbd> and paste the path.
+          </div>
+          <div class="picker-help">
+            Use <strong>Open folder</strong> for a whole history folder, or
+            <strong>Open files</strong> for selected JSONL files.
           </div>
         </div>
         <div id="sessions" class="sessions"></div>
@@ -666,10 +601,6 @@
         search: document.querySelector("#search"),
         refresh: document.querySelector("#refresh"),
         follow: document.querySelector("#follow"),
-        locationPreset: document.querySelector("#locationPreset"),
-        locationPath: document.querySelector("#locationPath"),
-        copyLocation: document.querySelector("#copyLocation"),
-        openSelectedFolder: document.querySelector("#openSelectedFolder"),
         openFolder: document.querySelector("#openFolder"),
         openFolderInput: document.querySelector("#openFolderInput"),
         openFiles: document.querySelector("#openFiles"),
@@ -682,10 +613,6 @@
       const maxSessions = 200;
       const maxEvents = 600;
       const defaultSessionsPath = "~/.codex/sessions or ~/.claude/projects";
-      const defaultLocations = {
-        codex: "~/.codex/sessions",
-        claude: "~/.claude/projects",
-      };
 
       function fmtTime(value) {
         if (!value) return "";
@@ -1319,27 +1246,6 @@
       els.refresh.addEventListener("click", () => loadSessions());
       els.follow.addEventListener("change", () => {
         if (els.follow.checked) tick();
-      });
-
-      els.locationPreset.addEventListener("change", () => {
-        els.locationPath.value =
-          defaultLocations[els.locationPreset.value] || defaultLocations.codex;
-      });
-
-      els.copyLocation.addEventListener("click", async () => {
-        els.locationPath.select();
-        try {
-          await navigator.clipboard.writeText(els.locationPath.value);
-          els.status.textContent = "Copied " + els.locationPath.value;
-        } catch {
-          els.status.textContent = "Selected path text";
-        }
-      });
-
-      els.openSelectedFolder.addEventListener("click", () => {
-        els.status.textContent =
-          "Choose " + els.locationPath.value + " in the folder picker";
-        els.openFolder.click();
       });
 
       els.openFolder.addEventListener("click", async () => {
