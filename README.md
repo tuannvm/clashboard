@@ -23,7 +23,7 @@ curl -fsSL https://raw.githubusercontent.com/tuannvm/clashboard/main/serve.py | 
 ```
 
 Stop the server with `Control C` in the terminal. If port `8767` is already
-busy, stop the process using that port and run the command again.
+busy, the helper automatically uses the next open local port.
 
 On macOS, the `.codex` and `.claude` folders are hidden in Finder. Press
 `Command Shift .` to toggle hidden files and folders, or press `Command Shift G`
