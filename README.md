@@ -19,7 +19,7 @@ or select specific `.jsonl` files with `Open files`.
 For macOS users, the quickest no-clone local server is:
 
 ```sh
-curl -sL https://raw.githubusercontent.com/tuannvm/clashboard/main/s|python3
+curl -fsSL https://raw.githubusercontent.com/tuannvm/clashboard/main/s | python3
 ```
 
 Stop the server with `Control C` in the terminal. If port `8767` is already
