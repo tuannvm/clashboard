@@ -394,6 +394,115 @@
         line-height: 1.48;
       }
 
+      .body.markdown {
+        white-space: normal;
+      }
+
+      .body.markdown > *:first-child {
+        margin-top: 0;
+      }
+
+      .body.markdown > *:last-child {
+        margin-bottom: 0;
+      }
+
+      .body.markdown p,
+      .body.markdown ul,
+      .body.markdown ol,
+      .body.markdown blockquote,
+      .body.markdown pre,
+      .body.markdown table {
+        margin: 0 0 10px;
+      }
+
+      .body.markdown h1,
+      .body.markdown h2,
+      .body.markdown h3 {
+        margin: 12px 0 8px;
+        color: var(--text);
+        font-size: 15px;
+        line-height: 1.3;
+      }
+
+      .body.markdown h1 {
+        font-size: 17px;
+      }
+
+      .body.markdown h2 {
+        font-size: 16px;
+      }
+
+      .body.markdown ul,
+      .body.markdown ol {
+        padding-left: 22px;
+      }
+
+      .body.markdown li + li {
+        margin-top: 4px;
+      }
+
+      .body.markdown blockquote {
+        border-left: 3px solid var(--line-strong);
+        color: var(--muted);
+        padding-left: 10px;
+      }
+
+      .body.markdown pre {
+        background: var(--panel-2);
+        border: 1px solid var(--line);
+        border-radius: 6px;
+        overflow-x: auto;
+        padding: 10px;
+        white-space: pre;
+      }
+
+      .body.markdown code {
+        background: var(--panel-2);
+        border: 1px solid var(--line);
+        border-radius: 4px;
+        font-family:
+          ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
+          "Liberation Mono", monospace;
+        font-size: 12px;
+        padding: 1px 4px;
+      }
+
+      .body.markdown pre code {
+        background: transparent;
+        border: 0;
+        border-radius: 0;
+        padding: 0;
+      }
+
+      .body.markdown a {
+        color: var(--accent);
+        text-decoration: none;
+      }
+
+      .body.markdown a:hover {
+        text-decoration: underline;
+      }
+
+      .body.markdown table {
+        border-collapse: collapse;
+        display: block;
+        max-width: 100%;
+        overflow-x: auto;
+      }
+
+      .body.markdown th,
+      .body.markdown td {
+        border: 1px solid var(--line);
+        padding: 6px 8px;
+        text-align: left;
+        vertical-align: top;
+      }
+
+      .body.markdown th {
+        background: var(--panel-2);
+        font-weight: 750;
+      }
+
       .tool_call .body,
       .tool_output .body {
         font-family:
@@ -646,6 +755,228 @@
         if (event.kind === "task_complete") return "Complete";
         if (event.kind === "turn") return "Turn";
         return event.role || event.kind;
+      }
+
+      function appendInlineMarkdown(parent, text) {
+        const pattern =
+          /(`[^`]+`|\*\*[^*]+\*\*|__[^_]+__|\*[^*\s][^*]*\*|_[^_\s][^_]*_|~~[^~]+~~|\[([^\]]+)\]\(([^)\s]+)\))/g;
+        let cursor = 0;
+        let match;
+        while ((match = pattern.exec(text))) {
+          if (match.index > cursor) {
+            parent.append(
+              document.createTextNode(text.slice(cursor, match.index)),
+            );
+          }
+
+          const token = match[0];
+          if (token.startsWith("`")) {
+            const code = document.createElement("code");
+            code.textContent = token.slice(1, -1);
+            parent.append(code);
+          } else if (token.startsWith("**") || token.startsWith("__")) {
+            const strong = document.createElement("strong");
+            appendInlineMarkdown(strong, token.slice(2, -2));
+            parent.append(strong);
+          } else if (token.startsWith("*") || token.startsWith("_")) {
+            const emphasis = document.createElement("em");
+            appendInlineMarkdown(emphasis, token.slice(1, -1));
+            parent.append(emphasis);
+          } else if (token.startsWith("~~")) {
+            const deleted = document.createElement("del");
+            appendInlineMarkdown(deleted, token.slice(2, -2));
+            parent.append(deleted);
+          } else {
+            const label = match[2] || "";
+            const href = match[3] || "";
+            if (/^(https?:|mailto:)/i.test(href)) {
+              const link = document.createElement("a");
+              link.href = href;
+              link.target = "_blank";
+              link.rel = "noreferrer noopener";
+              appendInlineMarkdown(link, label);
+              parent.append(link);
+            } else {
+              parent.append(document.createTextNode(token));
+            }
+          }
+          cursor = match.index + token.length;
+        }
+        if (cursor < text.length) {
+          parent.append(document.createTextNode(text.slice(cursor)));
+        }
+      }
+
+      function appendParagraph(fragment, lines) {
+        if (!lines.length) return;
+        const paragraph = document.createElement("p");
+        appendInlineMarkdown(paragraph, lines.join(" "));
+        fragment.append(paragraph);
+      }
+
+      function appendList(fragment, lines, ordered) {
+        const list = document.createElement(ordered ? "ol" : "ul");
+        lines.forEach((line) => {
+          const item = document.createElement("li");
+          appendInlineMarkdown(
+            item,
+            line.replace(ordered ? /^\s*\d+[.)]\s+/ : /^\s*[-*+]\s+/, ""),
+          );
+          list.append(item);
+        });
+        fragment.append(list);
+      }
+
+      function appendTable(fragment, headerLine, dividerLine, bodyLines) {
+        const dividerCells = dividerLine
+          .trim()
+          .replace(/^\||\|$/g, "")
+          .split("|")
+          .map((cell) => cell.trim());
+        if (!dividerCells.every((cell) => /^:?-{3,}:?$/.test(cell)))
+          return false;
+
+        const table = document.createElement("table");
+        const thead = document.createElement("thead");
+        const headerRow = document.createElement("tr");
+        headerLine
+          .trim()
+          .replace(/^\||\|$/g, "")
+          .split("|")
+          .forEach((cell) => {
+            const th = document.createElement("th");
+            appendInlineMarkdown(th, cell.trim());
+            headerRow.append(th);
+          });
+        thead.append(headerRow);
+        table.append(thead);
+
+        const tbody = document.createElement("tbody");
+        bodyLines.forEach((line) => {
+          const row = document.createElement("tr");
+          line
+            .trim()
+            .replace(/^\||\|$/g, "")
+            .split("|")
+            .forEach((cell) => {
+              const td = document.createElement("td");
+              appendInlineMarkdown(td, cell.trim());
+              row.append(td);
+            });
+          tbody.append(row);
+        });
+        table.append(tbody);
+        fragment.append(table);
+        return true;
+      }
+
+      function renderMarkdown(value) {
+        const fragment = document.createDocumentFragment();
+        const lines = String(value || "")
+          .replace(/\r\n?/g, "\n")
+          .split("\n");
+        let i = 0;
+
+        while (i < lines.length) {
+          const line = lines[i];
+          if (!line.trim()) {
+            i += 1;
+            continue;
+          }
+
+          const fence = line.match(/^\s*(```+|~~~+)\s*([\w.-]+)?\s*$/);
+          if (fence) {
+            const close = fence[1][0];
+            const codeLines = [];
+            i += 1;
+            while (
+              i < lines.length &&
+              !lines[i].trim().startsWith(close.repeat(3))
+            ) {
+              codeLines.push(lines[i]);
+              i += 1;
+            }
+            if (i < lines.length) i += 1;
+            const pre = document.createElement("pre");
+            const code = document.createElement("code");
+            if (fence[2]) code.dataset.language = fence[2];
+            code.textContent = codeLines.join("\n");
+            pre.append(code);
+            fragment.append(pre);
+            continue;
+          }
+
+          const heading = line.match(/^(#{1,3})\s+(.+)$/);
+          if (heading) {
+            const node = document.createElement("h" + heading[1].length);
+            appendInlineMarkdown(node, heading[2].trim());
+            fragment.append(node);
+            i += 1;
+            continue;
+          }
+
+          if (/^\s*>/.test(line)) {
+            const quote = document.createElement("blockquote");
+            const quoteLines = [];
+            while (i < lines.length && /^\s*>/.test(lines[i])) {
+              quoteLines.push(lines[i].replace(/^\s*>\s?/, ""));
+              i += 1;
+            }
+            appendInlineMarkdown(quote, quoteLines.join(" "));
+            fragment.append(quote);
+            continue;
+          }
+
+          if (/^\s*[-*+]\s+/.test(line) || /^\s*\d+[.)]\s+/.test(line)) {
+            const ordered = /^\s*\d+[.)]\s+/.test(line);
+            const items = [];
+            const itemPattern = ordered ? /^\s*\d+[.)]\s+/ : /^\s*[-*+]\s+/;
+            while (i < lines.length && itemPattern.test(lines[i])) {
+              items.push(lines[i]);
+              i += 1;
+            }
+            appendList(fragment, items, ordered);
+            continue;
+          }
+
+          if (
+            line.includes("|") &&
+            i + 1 < lines.length &&
+            lines[i + 1].includes("|")
+          ) {
+            const tableLines = [];
+            let j = i + 2;
+            while (
+              j < lines.length &&
+              lines[j].includes("|") &&
+              lines[j].trim()
+            ) {
+              tableLines.push(lines[j]);
+              j += 1;
+            }
+            if (appendTable(fragment, line, lines[i + 1], tableLines)) {
+              i = j;
+              continue;
+            }
+          }
+
+          const paragraphLines = [];
+          while (
+            i < lines.length &&
+            lines[i].trim() &&
+            !/^\s*(```+|~~~+)/.test(lines[i]) &&
+            !/^(#{1,3})\s+/.test(lines[i]) &&
+            !/^\s*>/.test(lines[i]) &&
+            !/^\s*[-*+]\s+/.test(lines[i]) &&
+            !/^\s*\d+[.)]\s+/.test(lines[i])
+          ) {
+            paragraphLines.push(lines[i]);
+            i += 1;
+          }
+          appendParagraph(fragment, paragraphLines);
+        }
+
+        return fragment;
       }
 
       function textFromContent(content) {
@@ -1091,8 +1422,8 @@
               bubble.append(role, details);
             } else {
               const body = document.createElement("div");
-              body.className = "body";
-              body.textContent = event.text || "";
+              body.className = "body markdown";
+              body.append(renderMarkdown(event.text || ""));
               bubble.append(role, body);
             }
             row.append(time, bubble);

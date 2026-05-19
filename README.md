@@ -27,6 +27,11 @@ message at the top. Static hosting does not provide realtime disk updates from
 `~/.codex` or `~/.claude`; reselect the folder or files when you want to
 refresh from updated logs.
 
+Visible user and assistant messages render common Markdown directly in the
+browser, including headings, lists, blockquotes, links, tables, inline code, and
+fenced code blocks. Tool calls and tool outputs remain collapsed and plain-text
+for easier inspection.
+
 ## Browser Notes
 
 - `Open files` works with standard file selection.
